@@ -78,14 +78,57 @@
             background: #cbd5e1; 
             cursor: not-allowed;
         }
-        
-        .result-card { 
-            padding: 16px; 
-            border-radius: 10px; 
-            text-align: center; 
-            margin-top: 16px; 
-            display: none; 
-            font-size: 0.9rem;
+
+        /* สไตล์สำหรับ Modal Popup */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .modal-card {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: modalPop 0.25s ease-out;
+        }
+
+        @keyframes modalPop {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-text {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 20px;
+            color: #1e293b;
+        }
+
+        .btn-close {
+            background: #475569;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            font-family: 'Oxanium', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
         }
     </style>
     
@@ -97,29 +140,33 @@
     <div class="panel">
         <div class="panel-title">1. รูปแบบกลุ่มจุดอ้างอิง (REFERENCE)</div>
         <div class="display-box"><img id="refImage"></div>
-        <!-- เอา capture="environment" ออกเพื่อให้มือถือเด้งเลือกได้ทั้ง กล้อง / คลังภาพ -->
         <input type="file" id="fileInput" class="file-input-wrapper" accept="image/*">
     </div>
 
     <div class="panel">
         <div class="panel-title">2. ภาพตรวจทานหน้างาน (TARGET SCAN)</div>
         <div class="display-box"><img id="targetImage"></div>
-        <!-- เอา capture="environment" ออกเพื่อให้มือถือเด้งเลือกได้ทั้ง กล้อง / คลังภาพ -->
         <input type="file" id="fileInputTarget" class="file-input-wrapper" accept="image/*">
     </div>
 
     <button class="btn-primary" id="btnScan" disabled>กำลังโหลดเอนจิน...</button>
 
-    <div id="resultCard" class="result-card">
-        <div id="resultText" style="font-weight: 700;"></div>
+    <!-- Popup Modal สำหรับแสดงผลลัพธ์ -->
+    <div id="resultModal" class="modal-overlay">
+        <div class="modal-card" id="modalCardBg">
+            <div id="resultText" class="modal-text"></div>
+            <button class="btn-close" id="btnCloseModal">ปิดหน้าต่าง</button>
+        </div>
     </div>
 
     <script>
         const refImage = document.getElementById('refImage');
         const targetImage = document.getElementById('targetImage');
         const btnScan = document.getElementById('btnScan');
-        const resultCard = document.getElementById('resultCard');
+        const resultModal = document.getElementById('resultModal');
+        const modalCardBg = document.getElementById('modalCardBg');
         const resultText = document.getElementById('resultText');
+        const btnCloseModal = document.getElementById('btnCloseModal');
 
         let isReady = false;
 
@@ -130,7 +177,6 @@
             checkReady();
         }
 
-        // ระบบตรวจสอบความพร้อมแบบวนลูป
         let checkInterval = setInterval(() => {
             if (typeof cv !== 'undefined' && typeof cv.Mat === 'function') {
                 clearInterval(checkInterval);
@@ -138,7 +184,6 @@
             }
         }, 300);
 
-        // ระบบตัดรอบแจ้งเตือนหากโหลดเกิน 12 วินาที
         setTimeout(() => {
             if (!isReady) {
                 clearInterval(checkInterval);
@@ -168,6 +213,16 @@
                 btnScan.disabled = true;
             }
         }
+
+        // ฟังก์ชันปิด Modal เมื่อกดปุ่มปิด หรือคลิกพื้นที่ฉากหลัง
+        btnCloseModal.onclick = () => {
+            resultModal.style.display = 'none';
+        };
+        resultModal.onclick = (e) => {
+            if (e.target === resultModal) {
+                resultModal.style.display = 'none';
+            }
+        };
 
         function getResizedMat(imgElement) {
             let canvas = document.createElement('canvas');
@@ -256,7 +311,6 @@
         }
 
         btnScan.onclick = () => {
-            resultCard.style.display = 'none';
             btnScan.innerText = "กำลังประมวลผล...";
             btnScan.disabled = true;
 
@@ -265,41 +319,36 @@
                     let p1 = getDots(refImage);
                     let p2 = getDots(targetImage);
                     
-                    resultCard.style.display = 'block';
+                    // เปิดแสดงผล Modal Popup
+                    resultModal.style.display = 'flex';
                     
                     if (p1.length !== p2.length || p1.length === 0) {
-                        resultText.innerText = `FAIL // จำนวนจุดไม่เท่ากัน (อ้างอิง: ${p1.length} | สแกน: ${p2.length})`;
-                        resultCard.style.background = 'var(--danger)'; 
-                        resultCard.style.color = 'white';
-                        btnScan.innerText = "ตรวจสอบจุด (พร้อมใช้งาน)";
-                        btnScan.disabled = false;
-                        return;
-                    }
-
-                    let matchCount = 0;
-                    let tolerance = (p1[0].width || 1000) * 0.07; 
-
-                    p1.forEach(pt1 => {
-                        let matched = false;
-                        p2.forEach(pt2 => {
-                            if (!matched) {
-                                let dist = Math.hypot(pt1.x - pt2.x, pt1.y - pt2.y);
-                                if (dist <= tolerance) {
-                                    matchCount++;
-                                    matched = true;
-                                }
-                            }
-                        });
-                    });
-
-                    if (matchCount === p1.length) {
-                        resultText.innerText = `PASS 100%`;
-                        resultCard.style.background = 'var(--success)'; 
-                        resultCard.style.color = 'white';
+                        resultText.innerText = `FAIL // จำนวนจุดไม่เท่ากัน\n(อ้างอิง: ${p1.length} | สแกน: ${p2.length})`;
+                        resultText.style.color = 'var(--danger)';
                     } else {
-                        resultText.innerText = `FAIL // ตำแหน่งคลาดเคลื่อน (เจอ ${matchCount} จาก ${p1.length} จุด)`;
-                        resultCard.style.background = 'var(--danger)'; 
-                        resultCard.style.color = 'white';
+                        let matchCount = 0;
+                        let tolerance = (p1[0].width || 1000) * 0.07; 
+
+                        p1.forEach(pt1 => {
+                            let matched = false;
+                            p2.forEach(pt2 => {
+                                if (!matched) {
+                                    let dist = Math.hypot(pt1.x - pt2.x, pt1.y - pt2.y);
+                                    if (dist <= tolerance) {
+                                        matchCount++;
+                                        matched = true;
+                                    }
+                                }
+                            });
+                        });
+
+                        if (matchCount === p1.length) {
+                            resultText.innerText = `PASS 100%\n(${matchCount}/${p1.length} จุดตรงกัน)`;
+                            resultText.style.color = 'var(--success)';
+                        } else {
+                            resultText.innerText = `FAIL // ตำแหน่งคลาดเคลื่อน\n(เจอ ${matchCount} จาก ${p1.length} จุด)`;
+                            resultText.style.color = 'var(--danger)';
+                        }
                     }
 
                 } catch (err) {
