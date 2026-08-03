@@ -97,13 +97,15 @@
     <div class="panel">
         <div class="panel-title">1. รูปแบบกลุ่มจุดอ้างอิง (REFERENCE)</div>
         <div class="display-box"><img id="refImage"></div>
-        <input type="file" id="fileInput" class="file-input-wrapper" accept="image/*" capture="environment">
+        <!-- เอา capture="environment" ออกเพื่อให้มือถือเด้งเลือกได้ทั้ง กล้อง / คลังภาพ -->
+        <input type="file" id="fileInput" class="file-input-wrapper" accept="image/*">
     </div>
 
     <div class="panel">
         <div class="panel-title">2. ภาพตรวจทานหน้างาน (TARGET SCAN)</div>
         <div class="display-box"><img id="targetImage"></div>
-        <input type="file" id="fileInputTarget" class="file-input-wrapper" accept="image/*" capture="environment">
+        <!-- เอา capture="environment" ออกเพื่อให้มือถือเด้งเลือกได้ทั้ง กล้อง / คลังภาพ -->
+        <input type="file" id="fileInputTarget" class="file-input-wrapper" accept="image/*">
     </div>
 
     <button class="btn-primary" id="btnScan" disabled>กำลังโหลดเอนจิน...</button>
@@ -312,3 +314,4 @@
     </script>
 </body>
 </html>
+```[cite: 1]
