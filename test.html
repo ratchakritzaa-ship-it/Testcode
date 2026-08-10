@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PATTERN_SCAN QC VISION - Feature Matching (Tuned)</title>
+    <title>PATTERN_SCAN QC VISION - Feature Matching (Strict Tuned)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Oxanium:wght@700&display=swap');
         
@@ -204,7 +204,6 @@
 
     <div class="status-bar" id="statusBar">สถานะ: กำลังโหลด OpenCV Engine...</div>
 
-    <!-- โครงสร้าง Popup -->
     <div class="popup-overlay" id="popupOverlay"></div>
     <div class="popup-box" id="popupBox">
         <div class="popup-title" id="popupTitle">ผลการสแกน</div>
@@ -236,7 +235,7 @@
             if (typeof cv !== 'undefined' && typeof cv.Mat === 'function') {
                 clearInterval(checkInterval);
                 isCvReady = true;
-                statusBar.innerText = "สถานะ: พร้อมใช้งาน (ปรับจูนสำหรับลายไทยแล้ว)";
+                statusBar.innerText = "สถานะ: พร้อมใช้งาน (ปรับจูนความแม่นยำสูง)";
             }
         }, 300);
 
@@ -372,7 +371,6 @@
                     cv.cvtColor(templateMat, grayTempl, cv.COLOR_RGBA2GRAY);
                     cv.cvtColor(targetMat, grayTarget, cv.COLOR_RGBA2GRAY);
 
-                    // 1. เพิ่มจุดสแกนเป็น 5000 จุด สำหรับลายไทยที่มีรายละเอียดเยอะ
                     let orb = new cv.ORB(5000);
                     let kp1 = new cv.KeyPointVector();
                     let kp2 = new cv.KeyPointVector();
@@ -393,15 +391,16 @@
 
                         let goodMatches = [];
                         for (let i = 0; i < matches.size(); i++) {
-                            // 2. ยอมรับความคลาดเคลื่อนของจุดเด่นมากขึ้น (จาก 60 เป็น 70)
-                            if (matches.get(i).distance < 70) {
+                            // ปรับที่ 1: ลด distance ลงจาก 70 เหลือ 45 ทำให้ต้องเหมือนกันจริงๆ ถึงจะนับ
+                            if (matches.get(i).distance < 45) {
                                 goodMatches.push(matches.get(i));
                             }
                         }
 
                         let inlierCount = 0;
 
-                        if (goodMatches.length >= 8) {
+                        // ต้องมีจุดที่คล้ายกันอย่างน้อย 15 จุด ถึงจะยอมคำนวณรูปทรง
+                        if (goodMatches.length >= 15) {
                             let srcPoints = [];
                             let dstPoints = [];
 
@@ -416,8 +415,8 @@
                             let dstMat = cv.matFromArray(goodMatches.length, 1, cv.CV_32FC2, dstPoints);
                             let mask = new cv.Mat();
 
-                            // 3. ปรับค่า RANSAC จาก 5.0 เป็น 10.0 เพื่อให้ยืดหยุ่นต่อมุมกล้องที่เอียงมากขึ้น
-                            let H = cv.findHomography(srcMat, dstMat, cv.RANSAC, 10.0, mask);
+                            // ปรับที่ 2: ปรับค่า RANSAC จาก 10.0 เหลือ 4.0 (จุดต้องวางในตำแหน่งเรขาคณิตที่เป๊ะขึ้น ไม่งั้นตีเป็น false)
+                            let H = cv.findHomography(srcMat, dstMat, cv.RANSAC, 4.0, mask);
 
                             if (!H.empty()) {
                                 for (let i = 0; i < mask.rows; i++) {
@@ -428,41 +427,50 @@
                                     }
                                 }
 
-                                let objCorners = cv.matFromArray(4, 1, cv.CV_32FC2, [
-                                    0, 0,
-                                    templateMat.cols, 0,
-                                    templateMat.cols, templateMat.rows,
-                                    0, templateMat.rows
-                                ]);
-                                let sceneCorners = new cv.Mat();
-                                cv.perspectiveTransform(objCorners, sceneCorners, H);
+                                // วาดกรอบสี่เหลี่ยมเฉพาะตอนที่ Inlier มากพอเท่านั้น
+                                if (inlierCount >= 20) {
+                                    let objCorners = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                                        0, 0,
+                                        templateMat.cols, 0,
+                                        templateMat.cols, templateMat.rows,
+                                        0, templateMat.rows
+                                    ]);
+                                    let sceneCorners = new cv.Mat();
+                                    cv.perspectiveTransform(objCorners, sceneCorners, H);
 
-                                for (let i = 0; i < 4; i++) {
-                                    let p1 = new cv.Point(sceneCorners.data32F[i * 2], sceneCorners.data32F[i * 2 + 1]);
-                                    let p2 = new cv.Point(sceneCorners.data32F[((i + 1) % 4) * 2], sceneCorners.data32F[((i + 1) % 4) * 2 + 1]);
-                                    cv.line(resultDisplay, p1, p2, new cv.Scalar(0, 255, 0, 255), 3);
+                                    for (let i = 0; i < 4; i++) {
+                                        let p1 = new cv.Point(sceneCorners.data32F[i * 2], sceneCorners.data32F[i * 2 + 1]);
+                                        let p2 = new cv.Point(sceneCorners.data32F[((i + 1) % 4) * 2], sceneCorners.data32F[((i + 1) % 4) * 2 + 1]);
+                                        cv.line(resultDisplay, p1, p2, new cv.Scalar(0, 255, 0, 255), 3);
+                                    }
+                                    objCorners.delete(); sceneCorners.delete();
                                 }
-
-                                objCorners.delete(); sceneCorners.delete(); H.delete();
+                                H.delete();
                             }
-
                             srcMat.delete(); dstMat.delete(); mask.delete();
                         }
 
-                        // 4. ลดเกณฑ์จุด Inliers ที่ต้องการลงเหลือ 20 จุด เพื่อให้ผ่านง่ายขึ้นเมื่อภาพมีแสงเงา
-                        let targetInliers = 20; 
+                        // ปรับที่ 3: เกณฑ์เป้าหมาย เพิ่มจาก 20 เป็น 80 จุด
+                        // ถ้าเจอ 40 จุดเป๊ะๆ = 50%
+                        let targetInliers = 80; 
                         matchPercent = Math.min(100, (inlierCount / targetInliers) * 100);
                         
-                        // 5. ลดเกณฑ์การผ่าน (Threshold) เป็น 50% 
                         let threshold = 50.0; 
-                        isPass = matchPercent >= threshold;
+                        
+                        // ต้องผ่านทั้งเปอร์เซ็นต์ขั้นต่ำ และ ต้องมีจำนวนจุดขั้นต่ำไม่น้อยกว่า 35 จุด (ป้องกันภาพขยะฟลุ๊คตรง 10 จุด)
+                        isPass = (matchPercent >= threshold) && (inlierCount >= 35);
+
+                        // ล้างหน้าจอคะแนนกรณีที่จุดน้อยเกินไปให้อยู่ในระดับ Fail 
+                        if (!isPass && matchPercent >= threshold) {
+                            matchPercent = 49.9; // บังคับตกถ้าจุด Inliers น้อยเกินไป
+                        }
 
                         if (isPass) {
                             popupTitle.innerHTML = `<span class="text-success">✅ PASS // ผ่านเกณฑ์</span>`;
                             popupMessage.innerHTML = `ตรวจพบลวดลายถูกต้องตรงกัน<br><br>คะแนนความเหมือน: <br><span class="text-success" style="font-size:1.8rem; font-weight:bold;">${matchPercent.toFixed(1)}%</span><br><span style="font-size:0.8rem; color:#94a3b8;">(${inlierCount} จุดเด่นที่ตรงกัน)</span>`;
                         } else {
                             popupTitle.innerHTML = `<span class="text-danger">❌ FAIL // ไม่ผ่านเกณฑ์</span>`;
-                            popupMessage.innerHTML = `ไม่พบลวดลายที่ตรงกันมากพอ<br><span style="font-size:0.8rem; color:#94a3b8;">(ต้องการความเหมือน ${threshold}% ขึ้นไป)</span><br><br>คะแนนความเหมือน: <br><span class="text-danger" style="font-size:1.8rem; font-weight:bold;">${matchPercent.toFixed(1)}%</span>`;
+                            popupMessage.innerHTML = `ไม่พบลวดลายที่ตรงกันมากพอ<br><span style="font-size:0.8rem; color:#94a3b8;">(ต้องการ Inliers ขั้นต่ำ 35 จุด)</span><br><br>คะแนนความเหมือน: <br><span class="text-danger" style="font-size:1.8rem; font-weight:bold;">${matchPercent.toFixed(1)}%</span><br><span style="font-size:0.8rem; color:#94a3b8;">(${inlierCount} จุดเด่นที่ตรงกัน)</span>`;
                         }
 
                         matches.delete(); bf.delete();
