@@ -172,16 +172,16 @@
 </head>
 <body>
 
-    <h1>PATTERN_SCAN QC VISION</h1>
+    <h1>SECULITY SCAN</h1>
 
     <div class="panel">
-        <div class="panel-title">1. ภาพสัญลักษณ์ต้นฉบับ (Feature Reference)</div>
+        <div class="panel-title">ภาพสัญลักษณ์ต้นฉบับ</div>
         <div class="display-box"><canvas id="refCanvas"></canvas></div>
         <input type="file" id="fileInputRef" class="file-input-wrapper" accept="image/*">
     </div>
 
     <div class="panel">
-        <div class="panel-title">2. ตรวจสอบภาพเป้าหมาย</div>
+        <div class="panel-title">ภาพเปรียบเทียบ</div>
         <div class="display-box">
             <video id="videoElement" autoplay playsinline muted style="display:none;"></video>
             <img id="targetImage" alt="Target File" style="display:none;">
@@ -193,12 +193,12 @@
         </div>
         
         <div style="margin-top: 10px;">
-            <label class="panel-title" style="display:block; margin-bottom:4px;">หรือเลือกไฟล์ภาพจากเครื่อง:</label>
+            <label class="panel-title" style="display:block; margin-bottom:4px;">เลือกไฟล์ภาพจากเครื่อง:</label>
             <input type="file" id="fileInputTarget" class="file-input-wrapper" accept="image/*">
         </div>
 
         <div style="margin-top: 10px;">
-            <button class="btn" id="btnScan">เริ่มสแกนด้วยระบบ AI Feature</button>
+            <button class="btn" id="btnScan">เริ่มสแกน</button>
         </div>
     </div>
 
