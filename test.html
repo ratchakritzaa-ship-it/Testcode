@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PATTERN_SCAN QC VISION - Feature Matching (Optimized)</title>
+    <title>PATTERN_SCAN QC VISION - Feature Matching (Tuned)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Oxanium:wght@700&display=swap');
         
@@ -198,7 +198,7 @@
         </div>
 
         <div style="margin-top: 10px;">
-            <button class="btn" id="btnScan" disabled>เริ่มสแกนด้วยระบบ AI Feature</button>
+            <button class="btn" id="btnScan">เริ่มสแกนด้วยระบบ AI Feature</button>
         </div>
     </div>
 
@@ -236,13 +236,16 @@
             if (typeof cv !== 'undefined' && typeof cv.Mat === 'function') {
                 clearInterval(checkInterval);
                 isCvReady = true;
-                statusBar.innerText = "สถานะ: พร้อมใช้งาน (ปรับปรุงอัลกอริทึมสำหรับ High-Density Pattern)";
-                checkReady();
+                statusBar.innerText = "สถานะ: พร้อมใช้งาน (ปรับจูนสำหรับลายไทยแล้ว)";
             }
         }, 300);
 
         document.getElementById('fileInputRef').onchange = (e) => { 
-            if(e.target.files[0] && isCvReady) {
+            if(e.target.files[0]) {
+                if (!isCvReady) {
+                    alert("ระบบกำลังโหลด OpenCV Engine กรุณารอสักครู่แล้วเลือกไฟล์ใหม่อีกครั้ง");
+                    return;
+                }
                 let reader = new FileReader();
                 reader.onload = function(event) {
                     let img = new Image();
@@ -250,7 +253,6 @@
                         if (templateMat) templateMat.delete();
                         templateMat = matFromElement(img, 1000);
                         cv.imshow('refCanvas', templateMat);
-                        checkReady();
                     }
                     img.src = event.target.result;
                 }
@@ -272,18 +274,9 @@
                     outputCanvas.style.display = 'block';
                     targetImage.style.display = 'none';
                     videoElement.style.display = 'none';
-                    checkReady();
                 };
             }
         };
-
-        function checkReady() {
-            if (isCvReady && templateMat && (activeSourceType === 'camera' || activeSourceType === 'file')) {
-                btnScan.disabled = false;
-            } else {
-                btnScan.disabled = true;
-            }
-        }
 
         function stopCamera() {
             if (cameraStream) {
@@ -316,14 +309,12 @@
                     activeSourceType = 'camera';
                     btnToggleCam.innerText = "ปิดกล้อง Live";
                     btnToggleCam.style.background = "var(--danger)";
-                    checkReady();
                 } catch (err) {
                     alert("ไม่สามารถเปิดกล้องได้: " + err.message);
                 }
             } else {
                 stopCamera();
                 activeSourceType = null;
-                checkReady();
             }
         };
 
@@ -354,8 +345,20 @@
         }
 
         btnScan.onclick = () => {
-            if (!isCvReady || !templateMat) return;
+            if (!isCvReady) {
+                alert("ระบบกำลังโหลด OpenCV Engine กรุณารอสักครู่");
+                return;
+            }
+            if (!templateMat) {
+                alert("กรุณาเลือก '1. ภาพสัญลักษณ์ต้นฉบับ' ก่อนทำการสแกน");
+                return;
+            }
+            if (!activeSourceType) {
+                alert("กรุณาเปิดกล้องหรือเลือกไฟล์ใน '2. ตรวจสอบภาพเป้าหมาย' ก่อนทำการสแกน");
+                return;
+            }
 
+            let originalText = btnScan.innerText;
             btnScan.innerText = "กำลังประมวลผล Feature AI...";
             btnScan.disabled = true;
 
@@ -369,8 +372,8 @@
                     cv.cvtColor(templateMat, grayTempl, cv.COLOR_RGBA2GRAY);
                     cv.cvtColor(targetMat, grayTarget, cv.COLOR_RGBA2GRAY);
 
-                    // เพิ่มจุดสแกนเป็น 3000 จุด เพื่อรองรับลวดลายละเอียด
-                    let orb = new cv.ORB(3000);
+                    // 1. เพิ่มจุดสแกนเป็น 5000 จุด สำหรับลายไทยที่มีรายละเอียดเยอะ
+                    let orb = new cv.ORB(5000);
                     let kp1 = new cv.KeyPointVector();
                     let kp2 = new cv.KeyPointVector();
                     let des1 = new cv.Mat();
@@ -390,7 +393,8 @@
 
                         let goodMatches = [];
                         for (let i = 0; i < matches.size(); i++) {
-                            if (matches.get(i).distance < 60) {
+                            // 2. ยอมรับความคลาดเคลื่อนของจุดเด่นมากขึ้น (จาก 60 เป็น 70)
+                            if (matches.get(i).distance < 70) {
                                 goodMatches.push(matches.get(i));
                             }
                         }
@@ -412,7 +416,8 @@
                             let dstMat = cv.matFromArray(goodMatches.length, 1, cv.CV_32FC2, dstPoints);
                             let mask = new cv.Mat();
 
-                            let H = cv.findHomography(srcMat, dstMat, cv.RANSAC, 5.0, mask);
+                            // 3. ปรับค่า RANSAC จาก 5.0 เป็น 10.0 เพื่อให้ยืดหยุ่นต่อมุมกล้องที่เอียงมากขึ้น
+                            let H = cv.findHomography(srcMat, dstMat, cv.RANSAC, 10.0, mask);
 
                             if (!H.empty()) {
                                 for (let i = 0; i < mask.rows; i++) {
@@ -444,12 +449,12 @@
                             srcMat.delete(); dstMat.delete(); mask.delete();
                         }
 
-                        // ปรับการคำนวณคะแนนใหม่: อิงจากจำนวน Inliers ในพื้นที่กรอบวัตถุ (เป้าหมายคือ >= 25 จุดถือว่าสมบูรณ์)
-                        let targetInliers = 25; 
+                        // 4. ลดเกณฑ์จุด Inliers ที่ต้องการลงเหลือ 20 จุด เพื่อให้ผ่านง่ายขึ้นเมื่อภาพมีแสงเงา
+                        let targetInliers = 20; 
                         matchPercent = Math.min(100, (inlierCount / targetInliers) * 100);
                         
-                        // กำหนดเกณฑ์ผ่านที่ 60% ของเป้าหมาย Inlier
-                        let threshold = 60.0; 
+                        // 5. ลดเกณฑ์การผ่าน (Threshold) เป็น 50% 
+                        let threshold = 50.0; 
                         isPass = matchPercent >= threshold;
 
                         if (isPass) {
@@ -481,7 +486,7 @@
                     alert("เกิดข้อผิดพลาดในระบบ Feature Vision: " + err.message);
                 }
 
-                btnScan.innerText = "เริ่มสแกนด้วยระบบ AI Feature";
+                btnScan.innerText = originalText;
                 btnScan.disabled = false;
             }, 100);
         };
