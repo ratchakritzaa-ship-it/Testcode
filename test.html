@@ -3,42 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PatternScan QC VISION (Robust Engine)</title>
+    <title>PATTERN_SCAN QC VISION - Feature Matching (Optimized)</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Oxanium:wght@700&display=swap');
         
         :root { 
             --primary: #0284c7; 
-            --success: #0d9488; 
+            --success: #10b981; 
             --danger: #ef4444; 
-            --bg: #f1f5f9; 
+            --bg: #0f172a; 
+            --card-bg: #1e293b;
+            --text: #f8fafc;
         }
         
         body { 
             font-family: 'Inter', sans-serif; 
             background: var(--bg); 
-            padding: 16px; 
+            color: var(--text);
+            padding: 12px; 
             margin: 0; 
+        }
+
+        h1 {
+            font-family: 'Oxanium', sans-serif;
+            font-size: 1.1rem;
+            text-align: center;
+            margin-bottom: 12px;
+            color: #38bdf8;
         }
         
         .panel { 
-            background: #ffffff; 
-            border: 1px solid #e2e8f0; 
+            background: var(--card-bg); 
+            border: 1px solid #334155; 
             border-radius: 14px; 
-            padding: 16px; 
-            margin-bottom: 16px; 
+            padding: 12px; 
+            margin-bottom: 12px; 
         }
         
         .panel-title { 
             font-size: 0.75rem; 
-            color: #64748b; 
+            color: #94a3b8; 
             font-weight: 700; 
-            margin-bottom: 12px; 
+            margin-bottom: 8px; 
             font-family: 'Oxanium', sans-serif; 
         }
         
         .display-box { 
-            border: 1px dashed #cbd5e1; 
+            border: 1px dashed #475569; 
             border-radius: 10px; 
             aspect-ratio: 4/3; 
             display: flex; 
@@ -46,193 +57,281 @@
             justify-content: center; 
             overflow: hidden; 
             position: relative; 
-            background-color: #fafafa;
+            background-color: #000;
         }
         
-        .display-box img { 
+        .display-box img, .display-box video, .display-box canvas { 
             width: 100%; 
             height: 100%; 
             object-fit: contain; 
+            position: absolute;
         }
         
         .file-input-wrapper {
-            margin-top: 12px;
+            margin-top: 8px;
             width: 100%;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
         }
         
-        .btn-primary { 
+        .btn { 
             background: var(--primary); 
             color: white; 
             border: none; 
             width: 100%; 
-            padding: 14px; 
-            border-radius: 12px; 
+            padding: 12px; 
+            border-radius: 10px; 
             font-family: 'Oxanium', sans-serif; 
-            font-size: 1rem;
+            font-size: 0.95rem;
             font-weight: 700; 
             cursor: pointer; 
             transition: 0.2s;
         }
+
+        .btn-secondary {
+            background: #475569;
+        }
         
-        .btn-primary:disabled { 
-            background: #cbd5e1; 
+        .btn:disabled { 
+            background: #334155; 
+            color: #64748b;
             cursor: not-allowed;
         }
-
-        /* สไตล์สำหรับ Modal Popup */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            padding: 16px;
-            box-sizing: border-box;
-        }
-
-        .modal-card {
-            background: white;
-            padding: 24px;
-            border-radius: 16px;
-            width: 100%;
-            max-width: 360px;
+        
+        .status-bar {
+            font-size: 0.8rem;
             text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            animation: modalPop 0.25s ease-out;
+            color: #cbd5e1;
+            margin-bottom: 8px;
         }
 
-        @keyframes modalPop {
-            0% { transform: scale(0.9); opacity: 0; }
-            100% { transform: scale(1); opacity: 1; }
+        /* Popup Styles */
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 999;
+            backdrop-filter: blur(3px);
         }
-
-        .modal-text {
+        .popup-box {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--card-bg);
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 24px;
+            width: 80%;
+            max-width: 350px;
+            z-index: 1000;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            font-family: 'Oxanium', sans-serif;
+        }
+        .popup-title {
+            font-size: 1.3rem;
             font-weight: 700;
-            font-size: 1.1rem;
-            margin-bottom: 20px;
-            color: #1e293b;
+            margin-bottom: 15px;
         }
-
-        .btn-close {
+        .popup-message {
+            font-size: 0.95rem;
+            color: #e2e8f0;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        .popup-close-btn {
             background: #475569;
             color: white;
             border: none;
-            width: 100%;
-            padding: 12px;
-            border-radius: 10px;
+            padding: 10px 24px;
+            border-radius: 8px;
             font-family: 'Oxanium', sans-serif;
             font-size: 0.95rem;
             font-weight: 700;
             cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
         }
+        .popup-close-btn:hover {
+            background: #64748b;
+        }
+        .text-success { color: var(--success); }
+        .text-danger { color: var(--danger); }
     </style>
     
-    <!-- โหลด OpenCV ผ่าน CDN ทางการ -->
     <script async src="https://docs.opencv.org/4.x/opencv.js" type="text/javascript"></script>
 </head>
 <body>
 
+    <h1>PATTERN_SCAN QC VISION</h1>
+
     <div class="panel">
-        <div class="panel-title">1. รูปแบบกลุ่มจุดอ้างอิง (REFERENCE)</div>
-        <div class="display-box"><img id="refImage"></div>
-        <input type="file" id="fileInput" class="file-input-wrapper" accept="image/*">
+        <div class="panel-title">1. ภาพสัญลักษณ์ต้นฉบับ (Feature Reference)</div>
+        <div class="display-box"><canvas id="refCanvas"></canvas></div>
+        <input type="file" id="fileInputRef" class="file-input-wrapper" accept="image/*">
     </div>
 
     <div class="panel">
-        <div class="panel-title">2. ภาพตรวจทานหน้างาน (TARGET SCAN)</div>
-        <div class="display-box"><img id="targetImage"></div>
-        <input type="file" id="fileInputTarget" class="file-input-wrapper" accept="image/*">
-    </div>
+        <div class="panel-title">2. ตรวจสอบภาพเป้าหมาย</div>
+        <div class="display-box">
+            <video id="videoElement" autoplay playsinline muted style="display:none;"></video>
+            <img id="targetImage" alt="Target File" style="display:none;">
+            <canvas id="outputCanvas"></canvas>
+        </div>
+        
+        <div class="controls-row">
+            <button class="btn btn-secondary" id="btnToggleCam">เปิดกล้อง</button>
+        </div>
+        
+        <div style="margin-top: 10px;">
+            <label class="panel-title" style="display:block; margin-bottom:4px;">หรือเลือกไฟล์ภาพจากเครื่อง:</label>
+            <input type="file" id="fileInputTarget" class="file-input-wrapper" accept="image/*">
+        </div>
 
-    <button class="btn-primary" id="btnScan" disabled>กำลังโหลดเอนจิน...</button>
-
-    <!-- Popup Modal สำหรับแสดงผลลัพธ์ -->
-    <div id="resultModal" class="modal-overlay">
-        <div class="modal-card" id="modalCardBg">
-            <div id="resultText" class="modal-text"></div>
-            <button class="btn-close" id="btnCloseModal">ปิดหน้าต่าง</button>
+        <div style="margin-top: 10px;">
+            <button class="btn" id="btnScan" disabled>เริ่มสแกนด้วยระบบ AI Feature</button>
         </div>
     </div>
 
+    <div class="status-bar" id="statusBar">สถานะ: กำลังโหลด OpenCV Engine...</div>
+
+    <!-- โครงสร้าง Popup -->
+    <div class="popup-overlay" id="popupOverlay"></div>
+    <div class="popup-box" id="popupBox">
+        <div class="popup-title" id="popupTitle">ผลการสแกน</div>
+        <div class="popup-message" id="popupMessage"></div>
+        <button class="popup-close-btn" onclick="closePopup()">ปิดหน้าต่าง</button>
+    </div>
+
     <script>
-        const refImage = document.getElementById('refImage');
+        const refCanvas = document.getElementById('refCanvas');
+        const videoElement = document.getElementById('videoElement');
         const targetImage = document.getElementById('targetImage');
+        const outputCanvas = document.getElementById('outputCanvas');
         const btnScan = document.getElementById('btnScan');
-        const resultModal = document.getElementById('resultModal');
-        const modalCardBg = document.getElementById('modalCardBg');
-        const resultText = document.getElementById('resultText');
-        const btnCloseModal = document.getElementById('btnCloseModal');
+        const btnToggleCam = document.getElementById('btnToggleCam');
+        const statusBar = document.getElementById('statusBar');
 
-        let isReady = false;
+        const popupOverlay = document.getElementById('popupOverlay');
+        const popupBox = document.getElementById('popupBox');
+        const popupTitle = document.getElementById('popupTitle');
+        const popupMessage = document.getElementById('popupMessage');
 
-        function onOpenCvReady() {
-            if (isReady) return;
-            isReady = true;
-            btnScan.innerText = "ตรวจสอบจุด (พร้อมใช้งาน)";
-            checkReady();
-        }
+        let isCvReady = false;
+        let cameraStream = null;
+        let isCameraActive = false;
+        let activeSourceType = null;
+        let templateMat = null;
 
         let checkInterval = setInterval(() => {
             if (typeof cv !== 'undefined' && typeof cv.Mat === 'function') {
                 clearInterval(checkInterval);
-                onOpenCvReady();
+                isCvReady = true;
+                statusBar.innerText = "สถานะ: พร้อมใช้งาน (ปรับปรุงอัลกอริทึมสำหรับ High-Density Pattern)";
+                checkReady();
             }
         }, 300);
 
-        setTimeout(() => {
-            if (!isReady) {
-                clearInterval(checkInterval);
-                btnScan.innerText = "❌ โหลดเอนจินไม่สำเร็จ (ถูกบล็อก/ไม่มีเน็ต)";
-                btnScan.style.background = "var(--danger)";
-            }
-        }, 12000);
-
-        document.getElementById('fileInput').onchange = (e) => { 
-            if(e.target.files[0]) {
-                refImage.src = URL.createObjectURL(e.target.files[0]); 
-                checkReady(); 
-            }
-        };
-        
-        document.getElementById('fileInputTarget').onchange = (e) => { 
-            if(e.target.files[0]) {
-                targetImage.src = URL.createObjectURL(e.target.files[0]); 
-                checkReady(); 
+        document.getElementById('fileInputRef').onchange = (e) => { 
+            if(e.target.files[0] && isCvReady) {
+                let reader = new FileReader();
+                reader.onload = function(event) {
+                    let img = new Image();
+                    img.onload = function() {
+                        if (templateMat) templateMat.delete();
+                        templateMat = matFromElement(img, 1000);
+                        cv.imshow('refCanvas', templateMat);
+                        checkReady();
+                    }
+                    img.src = event.target.result;
+                }
+                reader.readAsDataURL(e.target.files[0]);
             }
         };
 
-        function checkReady() { 
-            if (isReady && refImage.src && targetImage.src) {
+        document.getElementById('fileInputTarget').onchange = (e) => {
+            if (e.target.files[0]) {
+                if (isCameraActive) { stopCamera(); }
+                
+                targetImage.src = URL.createObjectURL(e.target.files[0]);
+                targetImage.onload = () => {
+                    activeSourceType = 'file';
+                    let canvasCtx = outputCanvas.getContext('2d');
+                    outputCanvas.width = targetImage.naturalWidth;
+                    outputCanvas.height = targetImage.naturalHeight;
+                    canvasCtx.drawImage(targetImage, 0, 0);
+                    outputCanvas.style.display = 'block';
+                    targetImage.style.display = 'none';
+                    videoElement.style.display = 'none';
+                    checkReady();
+                };
+            }
+        };
+
+        function checkReady() {
+            if (isCvReady && templateMat && (activeSourceType === 'camera' || activeSourceType === 'file')) {
                 btnScan.disabled = false;
             } else {
                 btnScan.disabled = true;
             }
         }
 
-        // ฟังก์ชันปิด Modal เมื่อกดปุ่มปิด หรือคลิกพื้นที่ฉากหลัง
-        btnCloseModal.onclick = () => {
-            resultModal.style.display = 'none';
-        };
-        resultModal.onclick = (e) => {
-            if (e.target === resultModal) {
-                resultModal.style.display = 'none';
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+            videoElement.srcObject = null;
+            isCameraActive = false;
+            btnToggleCam.innerText = "เปิดกล้อง";
+            btnToggleCam.style.background = "#475569";
+        }
+
+        btnToggleCam.onclick = async () => {
+            if (!isCameraActive) {
+                try {
+                    document.getElementById('fileInputTarget').value = "";
+                    const constraints = {
+                        video: {
+                            facingMode: { ideal: "environment" },
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    };
+                    cameraStream = await navigator.mediaDevices.getUserMedia(constraints);
+                    videoElement.srcObject = cameraStream;
+                    videoElement.style.display = 'block';
+                    targetImage.style.display = 'none';
+                    outputCanvas.style.display = 'none';
+                    
+                    isCameraActive = true;
+                    activeSourceType = 'camera';
+                    btnToggleCam.innerText = "ปิดกล้อง Live";
+                    btnToggleCam.style.background = "var(--danger)";
+                    checkReady();
+                } catch (err) {
+                    alert("ไม่สามารถเปิดกล้องได้: " + err.message);
+                }
+            } else {
+                stopCamera();
+                activeSourceType = null;
+                checkReady();
             }
         };
 
-        function getResizedMat(imgElement) {
+        function matFromElement(element, maxDim = 1000) {
             let canvas = document.createElement('canvas');
-            let origW = imgElement.naturalWidth || imgElement.width || 320;
-            let origH = imgElement.naturalHeight || imgElement.height || 240;
-            
-            let maxDim = 1024;
-            let w = origW;
-            let h = origH;
-            
+            let w = element.naturalWidth || element.videoWidth || element.width;
+            let h = element.naturalHeight || element.videoHeight || element.height;
+
             if (w > maxDim || h > maxDim) {
                 if (w > h) {
                     h = Math.round((h * maxDim) / w);
@@ -242,121 +341,147 @@
                     h = maxDim;
                 }
             }
-
-            canvas.width = w; 
+            canvas.width = w;
             canvas.height = h;
-            
             let ctx = canvas.getContext('2d');
-            ctx.fillStyle = '#ffffff'; 
-            ctx.fillRect(0, 0, w, h);
-            ctx.drawImage(imgElement, 0, 0, w, h);
-            
-            let src = cv.imread(canvas);
-            return src;
+            ctx.drawImage(element, 0, 0, w, h);
+            return cv.imread(canvas);
         }
 
-        function getDots(imgElement) {
-            let mat = getResizedMat(imgElement);
-            let rgb = new cv.Mat();
-            cv.cvtColor(mat, rgb, cv.COLOR_RGBA2RGB);
-
-            let filtered = new cv.Mat();
-            cv.bilateralFilter(rgb, filtered, 9, 75, 75);
-
-            let hsv = new cv.Mat();
-            cv.cvtColor(filtered, hsv, cv.COLOR_RGB2HSV);
-            
-            let hsvPlanes = new cv.MatVector();
-            cv.split(hsv, hsvPlanes);
-            
-            let vChannel = hsvPlanes.get(2);
-            let clahe = new cv.CLAHE(2.0, new cv.Size(8, 8)); 
-            clahe.apply(vChannel, vChannel);
-            
-            hsvPlanes.set(2, vChannel);
-            cv.merge(hsvPlanes, hsv);
-            
-            let mask = new cv.Mat();
-            let low = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [75, 50, 50, 0]);
-            let high = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [110, 255, 255, 255]);
-            cv.inRange(hsv, low, high, mask);
-
-            let kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
-            cv.morphologyEx(mask, mask, cv.MORPH_OPEN, kernel);
-            
-            let contours = new cv.MatVector();
-            cv.findContours(mask, contours, new cv.Mat(), cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-            
-            let pts = [];
-            let imgArea = mat.cols * mat.rows; 
-            
-            for (let i = 0; i < contours.size(); ++i) {
-                let rect = cv.boundingRect(contours.get(i));
-                let area = rect.width * rect.height;
-                
-                if (area >= (imgArea * 0.000002) && area <= (imgArea * 0.08)) { 
-                    pts.push({
-                        x: rect.x + rect.width / 2, 
-                        y: rect.y + rect.height / 2,
-                        width: mat.cols 
-                    });
-                }
-            }
-            
-            mat.delete(); rgb.delete(); filtered.delete(); hsv.delete(); 
-            hsvPlanes.delete(); vChannel.delete(); clahe.delete();
-            mask.delete(); low.delete(); high.delete(); kernel.delete(); contours.delete();
-            
-            return pts;
+        function closePopup() {
+            popupOverlay.style.display = 'none';
+            popupBox.style.display = 'none';
         }
 
         btnScan.onclick = () => {
-            btnScan.innerText = "กำลังประมวลผล...";
+            if (!isCvReady || !templateMat) return;
+
+            btnScan.innerText = "กำลังประมวลผล Feature AI...";
             btnScan.disabled = true;
 
             setTimeout(() => {
                 try {
-                    let p1 = getDots(refImage);
-                    let p2 = getDots(targetImage);
-                    
-                    // เปิดแสดงผล Modal Popup
-                    resultModal.style.display = 'flex';
-                    
-                    if (p1.length !== p2.length || p1.length === 0) {
-                        resultText.innerText = `FAIL // จำนวนจุดไม่เท่ากัน\n(อ้างอิง: ${p1.length} | สแกน: ${p2.length})`;
-                        resultText.style.color = 'var(--danger)';
-                    } else {
-                        let matchCount = 0;
-                        let tolerance = (p1[0].width || 1000) * 0.07; 
+                    let targetSourceElement = isCameraActive ? videoElement : outputCanvas;
+                    let targetMat = matFromElement(targetSourceElement, 1000);
 
-                        p1.forEach(pt1 => {
-                            let matched = false;
-                            p2.forEach(pt2 => {
-                                if (!matched) {
-                                    let dist = Math.hypot(pt1.x - pt2.x, pt1.y - pt2.y);
-                                    if (dist <= tolerance) {
-                                        matchCount++;
-                                        matched = true;
+                    let grayTempl = new cv.Mat();
+                    let grayTarget = new cv.Mat();
+                    cv.cvtColor(templateMat, grayTempl, cv.COLOR_RGBA2GRAY);
+                    cv.cvtColor(targetMat, grayTarget, cv.COLOR_RGBA2GRAY);
+
+                    // เพิ่มจุดสแกนเป็น 3000 จุด เพื่อรองรับลวดลายละเอียด
+                    let orb = new cv.ORB(3000);
+                    let kp1 = new cv.KeyPointVector();
+                    let kp2 = new cv.KeyPointVector();
+                    let des1 = new cv.Mat();
+                    let des2 = new cv.Mat();
+
+                    orb.detectAndCompute(grayTempl, new cv.Mat(), kp1, des1);
+                    orb.detectAndCompute(grayTarget, new cv.Mat(), kp2, des2);
+
+                    let resultDisplay = targetMat.clone();
+                    let isPass = false;
+                    let matchPercent = 0;
+
+                    if (!des1.empty() && !des2.empty() && kp1.size() > 10) {
+                        let bf = new cv.BFMatcher(cv.NORM_HAMMING, true);
+                        let matches = new cv.DMatchVector();
+                        bf.match(des1, des2, matches);
+
+                        let goodMatches = [];
+                        for (let i = 0; i < matches.size(); i++) {
+                            if (matches.get(i).distance < 60) {
+                                goodMatches.push(matches.get(i));
+                            }
+                        }
+
+                        let inlierCount = 0;
+
+                        if (goodMatches.length >= 8) {
+                            let srcPoints = [];
+                            let dstPoints = [];
+
+                            for (let i = 0; i < goodMatches.length; i++) {
+                                srcPoints.push(kp1.get(goodMatches[i].queryIdx).pt.x);
+                                srcPoints.push(kp1.get(goodMatches[i].queryIdx).pt.y);
+                                dstPoints.push(kp2.get(goodMatches[i].trainIdx).pt.x);
+                                dstPoints.push(kp2.get(goodMatches[i].trainIdx).pt.y);
+                            }
+
+                            let srcMat = cv.matFromArray(goodMatches.length, 1, cv.CV_32FC2, srcPoints);
+                            let dstMat = cv.matFromArray(goodMatches.length, 1, cv.CV_32FC2, dstPoints);
+                            let mask = new cv.Mat();
+
+                            let H = cv.findHomography(srcMat, dstMat, cv.RANSAC, 5.0, mask);
+
+                            if (!H.empty()) {
+                                for (let i = 0; i < mask.rows; i++) {
+                                    if (mask.data[i] !== 0) {
+                                        inlierCount++;
+                                        let pt = kp2.get(goodMatches[i].trainIdx).pt;
+                                        cv.circle(resultDisplay, pt, 4, new cv.Scalar(0, 255, 0, 255), -1);
                                     }
                                 }
-                            });
-                        });
 
-                        if (matchCount === p1.length) {
-                            resultText.innerText = `PASS 100%\n(${matchCount}/${p1.length} จุดตรงกัน)`;
-                            resultText.style.color = 'var(--success)';
-                        } else {
-                            resultText.innerText = `FAIL // ตำแหน่งคลาดเคลื่อน\n(เจอ ${matchCount} จาก ${p1.length} จุด)`;
-                            resultText.style.color = 'var(--danger)';
+                                let objCorners = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                                    0, 0,
+                                    templateMat.cols, 0,
+                                    templateMat.cols, templateMat.rows,
+                                    0, templateMat.rows
+                                ]);
+                                let sceneCorners = new cv.Mat();
+                                cv.perspectiveTransform(objCorners, sceneCorners, H);
+
+                                for (let i = 0; i < 4; i++) {
+                                    let p1 = new cv.Point(sceneCorners.data32F[i * 2], sceneCorners.data32F[i * 2 + 1]);
+                                    let p2 = new cv.Point(sceneCorners.data32F[((i + 1) % 4) * 2], sceneCorners.data32F[((i + 1) % 4) * 2 + 1]);
+                                    cv.line(resultDisplay, p1, p2, new cv.Scalar(0, 255, 0, 255), 3);
+                                }
+
+                                objCorners.delete(); sceneCorners.delete(); H.delete();
+                            }
+
+                            srcMat.delete(); dstMat.delete(); mask.delete();
                         }
+
+                        // ปรับการคำนวณคะแนนใหม่: อิงจากจำนวน Inliers ในพื้นที่กรอบวัตถุ (เป้าหมายคือ >= 25 จุดถือว่าสมบูรณ์)
+                        let targetInliers = 25; 
+                        matchPercent = Math.min(100, (inlierCount / targetInliers) * 100);
+                        
+                        // กำหนดเกณฑ์ผ่านที่ 60% ของเป้าหมาย Inlier
+                        let threshold = 60.0; 
+                        isPass = matchPercent >= threshold;
+
+                        if (isPass) {
+                            popupTitle.innerHTML = `<span class="text-success">✅ PASS // ผ่านเกณฑ์</span>`;
+                            popupMessage.innerHTML = `ตรวจพบลวดลายถูกต้องตรงกัน<br><br>คะแนนความเหมือน: <br><span class="text-success" style="font-size:1.8rem; font-weight:bold;">${matchPercent.toFixed(1)}%</span><br><span style="font-size:0.8rem; color:#94a3b8;">(${inlierCount} จุดเด่นที่ตรงกัน)</span>`;
+                        } else {
+                            popupTitle.innerHTML = `<span class="text-danger">❌ FAIL // ไม่ผ่านเกณฑ์</span>`;
+                            popupMessage.innerHTML = `ไม่พบลวดลายที่ตรงกันมากพอ<br><span style="font-size:0.8rem; color:#94a3b8;">(ต้องการความเหมือน ${threshold}% ขึ้นไป)</span><br><br>คะแนนความเหมือน: <br><span class="text-danger" style="font-size:1.8rem; font-weight:bold;">${matchPercent.toFixed(1)}%</span>`;
+                        }
+
+                        matches.delete(); bf.delete();
+                    } else {
+                        popupTitle.innerHTML = `<span class="text-danger">⚠️ ERROR</span>`;
+                        popupMessage.innerHTML = `ไม่สามารถสกัดจุดเด่นจากภาพได้<br>โปรดลองเปลี่ยนภาพหรือปรับแสง`;
                     }
 
+                    cv.imshow('outputCanvas', resultDisplay);
+                    videoElement.style.display = 'none';
+                    outputCanvas.style.display = 'block';
+
+                    popupOverlay.style.display = 'block';
+                    popupBox.style.display = 'block';
+
+                    targetMat.delete(); grayTempl.delete(); grayTarget.delete(); resultDisplay.delete();
+                    kp1.delete(); kp2.delete(); des1.delete(); des2.delete(); orb.delete();
+
                 } catch (err) {
-                    console.error("OpenCV Error:", err);
-                    alert("เกิดข้อผิดพลาดในการประมวลผล");
+                    console.error(err);
+                    alert("เกิดข้อผิดพลาดในระบบ Feature Vision: " + err.message);
                 }
 
-                btnScan.innerText = "ตรวจสอบจุด (พร้อมใช้งาน)";
+                btnScan.innerText = "เริ่มสแกนด้วยระบบ AI Feature";
                 btnScan.disabled = false;
             }, 100);
         };
